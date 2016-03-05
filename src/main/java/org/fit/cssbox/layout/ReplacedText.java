@@ -151,9 +151,9 @@ public class ReplacedText extends ReplacedContent
         {
             createLayout(dim);
             //containing box for the new viewport
-            BlockBox cblock = (owner instanceof BlockBox) ? (BlockBox) owner : owner.getContainingBlock();
-            viewport.setContainingBlock(cblock);
-            viewport.clipByBlock(cblock);
+            viewport.setContainingBlockBox(owner);
+            if (owner instanceof BlockBox)
+                viewport.clipByBlock((BlockBox) owner);
             
             owner.removeAllSubBoxes();
             owner.addSubBox(viewport);

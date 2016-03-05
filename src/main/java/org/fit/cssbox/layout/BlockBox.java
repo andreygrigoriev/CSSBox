@@ -214,7 +214,6 @@ public class BlockBox extends ElementBox
         super(src.el, src.g, src.ctx);
         
         viewport = src.viewport;
-        cblock = src.cblock;
         clipblock = src.clipblock;
         isblock = true;
         contblock = false;
@@ -597,6 +596,28 @@ public class BlockBox extends ElementBox
     public int getIndent()
     {
         return indent;
+    }
+    
+    @Override
+    public Rectangle getContainingBlock()
+    {
+        if (position == POS_FIXED)
+            return viewport.getVisibleRect();
+        else if (position == POS_ABSOLUTE)
+            return cbox.getPaddingBounds();
+        else
+            return super.getContainingBlock();
+    }
+    
+    @Override
+    public Rectangle getAbsoluteContainingBlock()
+    {
+        if (position == POS_FIXED)
+            return viewport.getVisibleRect();
+        else if (position == POS_ABSOLUTE)
+            return cbox.getAbsolutePaddingBounds();
+        else
+            return super.getAbsoluteContainingBlock();
     }
     
    //========================================================================
@@ -1278,8 +1299,9 @@ public class BlockBox extends ElementBox
         if (displayed)
         {
             //my top left corner
-            int x = cblock.getAbsoluteContentX() + bounds.x;
-            int y = cblock.getAbsoluteContentY() + bounds.y;
+            final Rectangle cblock = getAbsoluteContainingBlock();
+            int x = cblock.x + bounds.x;
+            int y = cblock.y + bounds.y;
 
             if (floating == FLOAT_NONE)
             {
@@ -1294,13 +1316,13 @@ public class BlockBox extends ElementBox
                     {
                         updateStaticPosition();
                     }
-                    x = cblock.getAbsoluteBackgroundBounds().x + coords.left;
-                    y = cblock.getAbsoluteBackgroundBounds().y + coords.top;
+                    x = cblock.x + coords.left;
+                    y = cblock.y + coords.top;
                     //if fixed, update the position by the viewport visible offset
-                    if (position == POS_FIXED && cblock instanceof Viewport)
+                    if (position == POS_FIXED && getContainingBlockBox() instanceof Viewport)
                     {
-                        x += ((Viewport) cblock).getVisibleRect().x; 
-                        y += ((Viewport) cblock).getVisibleRect().y; 
+                        x += ((Viewport) getContainingBlockBox()).getVisibleRect().x; 
+                        y += ((Viewport) getContainingBlockBox()).getVisibleRect().y; 
                     }
                 }
             }
@@ -1349,24 +1371,29 @@ public class BlockBox extends ElementBox
     {
         if (topstatic || leftstatic)
         {
+            ElementBox cblock = getContainingBlockBox();
             if (absReference != null)
             {
                 //compute the bounds of the reference box relatively to our containing block
-                Rectangle ab = new Rectangle(absReference.getAbsoluteBounds());
-                Rectangle cb = cblock.getAbsoluteBounds();
-                ab.x = ab.x - cb.x;
-                ab.y = ab.y - cb.y;
+                final Rectangle cb = getContainingBlockBox().getAbsoluteBounds();
                 //position relatively to the border edge
                 if (topstatic)
                 {
+                    Rectangle ab = new Rectangle(absReference.getAbsoluteBounds());
+                    ab.x = ab.x - cb.x;
+                    ab.y = ab.y - cb.y;
                     if (!absReference.isblock || ((BlockBox) absReference).getFloating() == FLOAT_NONE) //not-floating boxes: place below
-                        coords.top = ab.y + ab.height - 1 - cblock.emargin.top - cblock.border.top;
+                        coords.top = ab.y + ab.height - cblock.emargin.top - cblock.border.top;
                     else //floating blocks: place top-aligned
                         coords.top = ab.y - cblock.emargin.top - cblock.border.top;
                 }
                 if (leftstatic)
                 {
-                    coords.left = ab.x - cblock.emargin.left - cblock.border.left;
+                    final ElementBox refcblock = absReference.getContainingBlockBox();
+                    if (refcblock != null)
+                        coords.left = refcblock.getAbsoluteContentBounds().x - cb.x - cblock.emargin.left - cblock.border.left;
+                    else
+                        coords.left = 0;
                 }
                 //the reference box position may be computed later: require recomputing
                 viewport.requireRecomputePositions();
@@ -1375,7 +1402,7 @@ public class BlockBox extends ElementBox
             {
                 //find the nearest DOM parent that is part of our box tree
                 ElementBox dparent = domParent; 
-                while (dparent != null && dparent.getContainingBlock() == null)
+                while (dparent != null && dparent.getContainingBlockBox() == null)
                     dparent = dparent.getParent();
                 //compute the bounds of the reference box relatively to our containing block
                 Rectangle ab = new Rectangle(dparent.getAbsoluteContentBounds());
@@ -1557,7 +1584,7 @@ public class BlockBox extends ElementBox
     	else if (min_size.width != -1)
     		ret = min_size.width;
     	else if (isInFlow())
-    		ret = cblock.getMinimalContentWidthLimit() - dif;
+    		ret = ((BlockBox) getContainingBlockBox()).getMinimalContentWidthLimit() - dif;
     	else
     		ret = 0;
     		
@@ -1628,7 +1655,7 @@ public class BlockBox extends ElementBox
     {
         if (fleft != null && fright != null)
         {
-            int mfy = Math.max(fleft.getMaxYForOwner(this), fright.getMaxYForOwner(this));
+            int mfy = Math.max(fleft.getMaxYForOwner(this, true), fright.getMaxYForOwner(this, true));
             if (this.containsBlocks())
             {
                 for (int i = 0; i < getSubBoxNumber(); i++)
@@ -1846,10 +1873,8 @@ public class BlockBox extends ElementBox
         CSSDecoder dec = new CSSDecoder(ctx);
         
         //containing box sizes
-        if (cblock == null)
-            { log.debug(toString() + " has no cblock"); return; }
-        int contw = cblock.getContentWidth();
-        int conth = cblock.getContentHeight();
+        int contw = getContainingBlock().width;
+        int conth = getContainingBlock().height;
         
         //Borders
         if (!update) //borders needn't be updated
@@ -1907,11 +1932,19 @@ public class BlockBox extends ElementBox
      */
     protected void loadWidthsHeights(CSSDecoder dec, int contw, int conth, boolean update)
     {
-        //Minimal and maximal width
-        min_size = new Dimension(dec.getLength(getLengthValue("min-width"), false, -1, -1, contw),
-                dec.getLength(getLengthValue("min-height"), false, -1, -1, conth));
-        max_size = new Dimension(dec.getLength(getLengthValue("max-width"), style.getProperty("max-width") == CSSProperty.MaxWidth.NONE, -1, -1, contw),
-                dec.getLength(getLengthValue("max-height"), style.getProperty("max-height") == CSSProperty.MaxHeight.NONE, -1, -1, conth));
+        //Minimal width
+        TermLengthOrPercent minw = getLengthValue("min-width");
+        TermLengthOrPercent minh = getLengthValue("min-height");
+        boolean autoMinW = false; 
+        boolean autoMinH = (minh != null && minh.isPercentage() && !getContainingBlockBox().hasFixedHeight());
+        min_size = new Dimension(dec.getLength(minw, autoMinW, -1, -1, contw), dec.getLength(minh, autoMinH, -1, -1, conth));
+        //Maximal width
+        TermLengthOrPercent maxw = getLengthValue("max-width");
+        TermLengthOrPercent maxh = getLengthValue("max-height");
+        boolean autoMaxW = style.getProperty("max-width") == CSSProperty.MaxWidth.NONE;
+        boolean autoMaxH = style.getProperty("max-height") == CSSProperty.MaxHeight.NONE
+                || (maxh != null && maxh.isPercentage() && !getContainingBlockBox().hasFixedHeight());
+        max_size = new Dimension(dec.getLength(maxw, autoMaxW, -1, -1, contw), dec.getLength(maxh, autoMaxH, -1, -1, conth));
         if (max_size.width != -1 && max_size.width < min_size.width)
             max_size.width = min_size.width;
         if (max_size.height != -1 && max_size.height < min_size.height)
@@ -1919,31 +1952,31 @@ public class BlockBox extends ElementBox
 
         //Calculate widths and margins
         TermLengthOrPercent width = getLengthValue("width");
-        computeWidths(width, style.getProperty("width") == CSSProperty.Width.AUTO, true, cblock, update);
+        computeWidths(width, style.getProperty("width") == CSSProperty.Width.AUTO, true, update);
         if (max_size.width != -1 && content.width > max_size.width)
         {
             width = getLengthValue("max-width");
-            computeWidths(width, false, false, cblock, update);
+            computeWidths(width, false, false, update);
         }
         if (min_size.width != -1 && content.width < min_size.width)
         {
             width = getLengthValue("min-width");
-            computeWidths(width, false, false, cblock, update);
+            computeWidths(width, false, false, update);
         }
         
         //Calculate heights and margins
         // http://www.w3.org/TR/CSS21/visudet.html#Computing_heights_and_margins
         TermLengthOrPercent height = getLengthValue("height");
-        computeHeights(height, style.getProperty("height") == CSSProperty.Height.AUTO, true, cblock, update);
+        computeHeights(height, style.getProperty("height") == CSSProperty.Height.AUTO, true, update);
         if (max_size.height != -1 && content.height > max_size.height)
         {
             height = getLengthValue("max-height");
-            computeHeights(height, false, false, cblock, update);
+            computeHeights(height, false, false, update);
         }
         if (min_size.height != -1 && content.height < min_size.height)
         {
             height = getLengthValue("min-height");
-            computeHeights(height, false, false, cblock, update);
+            computeHeights(height, false, false, update);
         }
     }
     
@@ -1955,14 +1988,14 @@ public class BlockBox extends ElementBox
      * @param cblock containing block
      * @param update <code>true</code>, if we're just updating the size to a new containing block size
      */
-    protected void computeWidths(TermLengthOrPercent width, boolean auto, boolean exact, BlockBox cblock, boolean update)
+    protected void computeWidths(TermLengthOrPercent width, boolean auto, boolean exact, boolean update)
     {
         mleftauto = style.getProperty("margin-left") == CSSProperty.Margin.AUTO;
         mrightauto = style.getProperty("margin-right") == CSSProperty.Margin.AUTO;
     	if (position == POS_ABSOLUTE || position == POS_FIXED)
-    		computeWidthsAbsolute(width, auto, exact, cblock.getContentWidth() + cblock.padding.left + cblock.padding.right, update); //containing box created by padding
+    		computeWidthsAbsolute(width, auto, exact, getContainingBlock().width, update); //containing box created by padding
     	else
-    		computeWidthsInFlow(width, auto, exact, cblock.getContentWidth(), update); //containing block formed by the content only
+    		computeWidthsInFlow(width, auto, exact, getContainingBlock().width, update); //containing block formed by the content only
     }
     
     protected void computeWidthsInFlow(TermLengthOrPercent width, boolean auto, boolean exact, int contw, boolean update)
@@ -2044,14 +2077,14 @@ public class BlockBox extends ElementBox
                 {
                     margin.right = contw - content.width - border.left - padding.left
                                     - padding.right - border.right - margin.left;
-                    if (margin.right < 0 && cblock.canIncreaseWidth())
+                    if (margin.right < 0 && getContainingBlockBox() instanceof BlockBox && ((BlockBox) getContainingBlockBox()).canIncreaseWidth())
                         margin.right = 0;
                 }
                 else //everything specified, ignore right margin
                 {
                     margin.right = contw - content.width - border.left - padding.left
                                     - padding.right - border.right - margin.left;
-                    if (margin.right < 0 && cblock.canIncreaseWidth())
+                    if (margin.right < 0 && getContainingBlockBox() instanceof BlockBox && ((BlockBox) getContainingBlockBox()).canIncreaseWidth())
                         margin.right = 0;
                 }
             }
@@ -2161,19 +2194,15 @@ public class BlockBox extends ElementBox
      *  http://www.w3.org/TR/CSS21/visudet.html#Computing_heights_and_margins
      * @param height the specified width
      * @param exact true if this is the exact height, false when it's a max/min height
-     * @param cblock the containing block
      * @param update <code>true</code>, if we're just updating the size to a new containing block size
      */
-    protected void computeHeights(TermLengthOrPercent height, boolean auto, boolean exact, BlockBox cblock, boolean update)
+    protected void computeHeights(TermLengthOrPercent height, boolean auto, boolean exact, boolean update)
     {
+        final Rectangle cb = getContainingBlock(); 
         if (position == POS_ABSOLUTE || position == POS_FIXED)
-        {
-            int contw = cblock.getContentWidth() + cblock.padding.left + cblock.padding.right; //containing block padding edge is taken
-            int conth = cblock.getContentHeight() + cblock.padding.top + cblock.padding.bottom;
-            computeHeightsAbsolute(height, auto, exact, contw, conth, update);
-        }
+            computeHeightsAbsolute(height, auto, exact, cb.width, cb.height, update);
         else
-            computeHeightsInFlow(height, auto, exact, cblock.getContentWidth(), cblock.getContentHeight(), update);
+            computeHeightsInFlow(height, auto, exact, cb.width, cb.height, update);
         //the computed margins allways correspond to the declared ones
         declMargin.top = margin.top;
         declMargin.bottom = margin.bottom;
@@ -2183,55 +2212,24 @@ public class BlockBox extends ElementBox
     {
         CSSDecoder dec = new CSSDecoder(ctx);
         
-        if (height == null) auto = true; //no value behaves as "auto"
+        if (height == null) auto = true;
 
         boolean mtopauto = style.getProperty("margin-top") == CSSProperty.Margin.AUTO;
         TermLengthOrPercent mtop = getLengthValue("margin-top");
         boolean mbottomauto = style.getProperty("margin-bottom") == CSSProperty.Margin.AUTO;
         TermLengthOrPercent mbottom = getLengthValue("margin-bottom");
         
-        if (!auto && height != null)
+        if (!auto)
         {
-            int baseh = conth;
-            if (height.isPercentage())
-            {
-                if (cblock == null)
-                {
-                    hset = false;
-                    log.error("No containing block for {}", this.toString());
-                }
-                else if (!cblock.hasFixedHeight())
-                {
-                    //we have a percentage height but the containing block has not an explicit height
-                    //CSS 2.1 says that the height should compute to "auto".
-                    //However, the browsers obviously find the nearest parent with an explicit height or use the viewport.
-                    BlockBox cb = cblock;
-                    do
-                    {
-                        cb = cb.getContainingBlock();
-                    } while (cb != null && !cb.hasFixedHeight() && !cb.isPositioned());
-                    if (cb == null || !cb.hasFixedHeight())
-                    {
-                        hset = false; //no suitable containing block
-                    }
-                    else
-                    {
-                        hset = exact; //found a containing block with an explicid height
-                        baseh = cb.getContentHeight();
-                    }
-                }
-                else
-                    hset = exact; //percentage and containing bloc has fixed height
-            }
-            else
-                hset = exact; //not a percentage - it's a fixed height
-            
+            if (exact)
+                hset = true;
             if (!update)
-                content.height = dec.getLength(height, auto, 0, 0, baseh);
+                content.height = dec.getLength(height, false, 0, 0, conth);
         }
         else //height not explicitly set
         {
-            hset = false;
+            if (exact)
+                hset = false;
         }
         
         //compute margins - auto margins are treated as zero
@@ -2258,27 +2256,9 @@ public class BlockBox extends ElementBox
     	
         if (!auto && height != null)
         {
-            int baseh = conth;
-            if (height.isPercentage())
-            {
-                if (cblock == null)
-                {
-                    hset = false;
-                    log.error("No containing block for {}", this.toString());
-                }
-                else
-                {
-                    //always fix the height based on the containing block
-                    hset = exact;
-                    LengthSet cpadding = cblock.getPadding(); //for position:absolute the padding height is used
-                    baseh = cblock.getContentHeight() + cpadding.top + cpadding.bottom;
-                }
-            }
-            else
-                hset = exact; //not a percentage - it's a fixed height
-            
+            hset = exact; //not a percentage - it's a fixed height
             if (!update)
-                content.height = dec.getLength(height, auto, 0, 0, baseh);
+                content.height = dec.getLength(height, auto, 0, 0, conth);
         }
         else //height not explicitly set
         {

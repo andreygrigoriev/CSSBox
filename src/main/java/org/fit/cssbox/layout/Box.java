@@ -71,8 +71,9 @@ abstract public class Box
     /** Parent box */
     protected ElementBox parent;
     
-    /** Containing block */
-    protected BlockBox cblock;
+    /** The box that generates the containing block.
+     * @see <a href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details">http://www.w3.org/TR/CSS21/visudet.html#containing-block-details</a> */
+    protected ElementBox cbox;
     
     /** Clipping box. The box is not visible if it is not inside of the clipping box.
      * Normally, the clipping box is the viewport or the nearest parent with
@@ -144,7 +145,7 @@ abstract public class Box
         availwidth = src.availwidth;
         viewport = src.viewport;
         parent = src.parent;
-        cblock = src.cblock;
+        cbox = src.cbox;
         clipblock = src.clipblock;
 
         bounds = new Rectangle(src.bounds);
@@ -181,9 +182,9 @@ abstract public class Box
     public void adoptParent(ElementBox parent)
     {
         if (parent instanceof BlockBox)
-            setContainingBlock((BlockBox) parent);
+            setContainingBlockBox(parent);
         else
-            setContainingBlock(parent.getContainingBlock());
+            setContainingBlockBox(parent.getContainingBlockBox());
         setParent(parent);
         setViewport(parent.getViewport());
         setClipBlock(parent.getClipBlock());
@@ -516,22 +517,54 @@ abstract public class Box
     }
     
     /**
-     * @return the containing block of this box according to the 
-     * <a href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details">CSS specification</a>
+     * Obtains the containing block bounds.
+     * @return the containing block bounds.
      */
-    public BlockBox getContainingBlock()
+    public Rectangle getContainingBlock()
     {
-        return cblock;
+        if (cbox instanceof Viewport) //initial containing block
+        {
+            Rectangle visible = ((Viewport) cbox).getVisibleRect();
+            return new Rectangle(0, 0, visible.width, visible.height);
+        }
+        else //static or relative position
+            return cbox.getContentBounds();
     }
     
     /**
-     * Set the containing block. During the layout, the box position will be
-     * computed inside of the containing block.
+     * Obtains the containing block absolute bounds.
+     * @return the containing block absolute bounds.
+     */
+    public Rectangle getAbsoluteContainingBlock()
+    {
+        if (cbox instanceof Viewport) //initial containing block
+        {
+            Rectangle ab = cbox.getAbsoluteBounds(); //normally positioned at 0,0; other value for nested viewports (e.g. objects)
+            Rectangle visible = ((Viewport) cbox).getVisibleRect();
+            return new Rectangle(ab.x, ab.y, visible.width, visible.height);
+        }
+        else //static or relative position
+            return cbox.getAbsoluteContentBounds();
+    }
+    
+    /**
+     * Obtains the box that generates the containing block for this box.
+     * @return The corresponding generating box according to the 
+     * <a href="http://www.w3.org/TR/CSS21/visudet.html#containing-block-details">CSS specification</a>
+     */
+    public ElementBox getContainingBlockBox()
+    {
+        return cbox;
+    }
+    
+    /**
+     * Sets the box that generates the containing block. During the layout, the box position will be
+     * computed based on the containing block.
      * @param box the containing box
      */
-    public void setContainingBlock(BlockBox box)
+    public void setContainingBlockBox(ElementBox box)
     {
-        cblock = box;
+        cbox = box;
     }
     
     /**
