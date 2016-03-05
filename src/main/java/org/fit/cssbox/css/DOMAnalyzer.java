@@ -119,9 +119,9 @@ public class DOMAnalyzer
             {
                 try {
                     this.baseUrl = new URL(baseUrl, docbase);
-                    log.info("Using specified document base " + this.baseUrl);
+                    log.debug("Using specified document base {}", this.baseUrl);
                 } catch (MalformedURLException e) {
-                    log.warn("Malformed base URL " + docbase);
+                    log.warn("Malformed base URL {}", docbase);
                 }
             }
         }
@@ -319,7 +319,7 @@ public class DOMAnalyzer
         if (body != null)
             HTMLNorm.attributesToStyles(body, "");
         else
-            log.error("No <body> element found in the DOM.");
+            log.warn("No <body> element found in the DOM.");
     }
     
     /**
@@ -435,9 +435,11 @@ public class DOMAnalyzer
             newsheet.setOrigin(translateOrigin(origin));
             styles.add(newsheet);
         } catch (IOException e) {
-            log.error("I/O Error: "+e.getMessage());
+            log.error("I/O Error: {}", e.getMessage());
+            log.error("url was {}", base);
         } catch (CSSException e) {
-            log.error("CSS Error: "+e.getMessage());
+            log.error("CSS Error: {}", e.getMessage());
+            log.error("url was {}", base);
         }
     }
     
@@ -458,9 +460,11 @@ public class DOMAnalyzer
             newsheet.setOrigin(translateOrigin(origin));
             styles.add(newsheet);
         } catch (IOException e) {
-            log.error("I/O Error: "+e.getMessage());
+            log.error("I/O Error: {}", e.getMessage());
+            log.error("url was {}", base);
         } catch (CSSException e) {
-            log.error("CSS Error: "+e.getMessage());
+            log.error("CSS Error: {}", e.getMessage());
+            log.error("url was {}", base);
         }
     }
     
@@ -493,9 +497,11 @@ public class DOMAnalyzer
             newsheet.setOrigin(translateOrigin(origin));
             styles.add(newsheet);
 	    } catch (IOException e) {
-            log.error("I/O Error: "+e.getMessage());
+            log.error("I/O Error: {}", e.getMessage());
+            log.error("url was {}", base);
         } catch (CSSException e) {
-            log.error("DOMAnalyzer: CSS Error: "+e.getMessage());
+            log.error("DOMAnalyzer: CSS Error: {}", e.getMessage());
+            log.error("url was {}", base);
         }
     }
 	
@@ -516,9 +522,11 @@ public class DOMAnalyzer
             newsheet.setOrigin(translateOrigin(origin));
             styles.add(newsheet);
 	    } catch (IOException e) {
-            log.error("I/O Error: "+e.getMessage());
+            log.error("I/O Error: {}", e.getMessage());
+            log.error("url was {}", base);
         } catch (CSSException e) {
-            log.error("DOMAnalyzer: CSS Error: "+e.getMessage());
+            log.error("DOMAnalyzer: CSS Error: {}", e.getMessage());
+            log.error("url was {}", base);
         }
     }
 	

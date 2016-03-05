@@ -179,7 +179,7 @@ public class CSSNorm
             "  content: ' ';"+
             "}"+
             "input[checked]:before {"+
-            "  content: 'x';"+
+            "  content: '✔';"+
             "}"+
             "input[type='text'],"+
             "input[type='password'],"+

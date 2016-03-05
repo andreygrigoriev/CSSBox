@@ -12,7 +12,7 @@
 
 	<groupId>net.sf.cssbox</groupId>
 	<artifactId>cssbox</artifactId>
-	<version>4.11-SNAPSHOT</version>
+	<version>4.10-SNAPSHOT-modified1</version>
 	<name>CSSBox</name>
 	<description>
 	CSSBox is an (X)HTML/CSS rendering engine written in pure Java. Its primary purpose is to provide a
@@ -39,8 +39,10 @@
 	</developers>
 	<contributors>
     		<contributor>
-      			<name>Contributors at GitHub</name>
-      			<url>https://github.com/radkovo/CSSBox/graphs/contributors</url>
+      			<name>Kaj Kandler</name>
+      			<email>kajkandler@conficio.com</email>
+      			<organization>Conficio</organization>
+      			<organizationUrl>http://conficio.com</organizationUrl>
     		</contributor>
   	</contributors>
   
@@ -146,12 +148,12 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
-			<version>1.7.12</version>
+			<version>1.7.7</version>
 		</dependency>
 		<dependency>
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
-			<version>1.22-SNAPSHOT</version>
+			<version>1.22-SNAPSHOT-modified</version>
 		</dependency>
 	</dependencies>
 	

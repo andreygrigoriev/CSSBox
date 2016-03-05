@@ -151,17 +151,6 @@ public class BlockTableBox extends BlockBox
         widthComputed = true;
         updateSizes();
         setSize(totalWidth(), totalHeight());
-        
-        //layout positioned boxes
-        for (Box box : nested)
-        {
-            if (box instanceof BlockBox && ((BlockBox) box).isPositioned())
-            {
-                ((BlockBox) box).updateSizes();
-                layoutBlockPositioned((BlockBox) box, stat);
-            }
-        }
-        
         return true;
     }
     
@@ -258,10 +247,6 @@ public class BlockTableBox extends BlockBox
             if (box instanceof TableCaptionBox)
             {
                 caption = (TableCaptionBox) box;
-            }
-            else if (box instanceof BlockBox && ((BlockBox) box).isPositioned())
-            {
-                //positioned boxes are ignored
             }
             else //other elements belong to the table itself
             {

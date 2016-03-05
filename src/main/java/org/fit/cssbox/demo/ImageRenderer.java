@@ -94,7 +94,6 @@ public class ImageRenderer
     public boolean renderURL(String urlstring, OutputStream out, Type type) throws IOException, SAXException
     {
         if (!urlstring.startsWith("http:") &&
-            !urlstring.startsWith("https:") &&
             !urlstring.startsWith("ftp:") &&
             !urlstring.startsWith("file:"))
                 urlstring = "http://" + urlstring;
@@ -151,7 +150,7 @@ public class ImageRenderer
     protected void setDefaultFonts(BrowserConfig config)
     {
         config.setDefaultFont(Font.SERIF, "Times New Roman");
-        config.setDefaultFont(Font.SANS_SERIF, "Arial");
+        config.setDefaultFont(Font.SANS_SERIF, "Arial Unicode MS");
         config.setDefaultFont(Font.MONOSPACED, "Courier New");
     }
     

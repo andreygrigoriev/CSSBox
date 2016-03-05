@@ -153,7 +153,7 @@ public class SVGRenderer implements BoxRenderer
         Rectangle b = text.getAbsoluteBounds();
         VisualContext ctx = text.getVisualContext();
         
-        String style = "font-size:" + ctx.getFontSize() + "pt;" + 
+        String style = "font-size:" + ctx.getFont().getSize() + "px;" + 
                        "font-weight:" + (ctx.getFont().isBold()?"bold":"normal") + ";" + 
                        "font-variant:" + (ctx.getFont().isItalic()?"italic":"normal") + ";" +
                        "font-family:" + ctx.getFont().getFamily() + ";" +

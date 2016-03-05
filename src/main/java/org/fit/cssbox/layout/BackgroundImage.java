@@ -20,21 +20,14 @@
 package org.fit.cssbox.layout;
 
 import java.awt.Graphics2D;
-import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.net.URL;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import cz.vutbr.web.css.CSSProperty;
 import cz.vutbr.web.css.CSSProperty.BackgroundAttachment;
 import cz.vutbr.web.css.CSSProperty.BackgroundPosition;
 import cz.vutbr.web.css.CSSProperty.BackgroundRepeat;
-import cz.vutbr.web.css.CSSProperty.BackgroundSize;
-import cz.vutbr.web.css.Term;
 import cz.vutbr.web.css.TermLengthOrPercent;
 import cz.vutbr.web.css.TermList;
 
@@ -45,35 +38,25 @@ import cz.vutbr.web.css.TermList;
  */
 public class BackgroundImage extends ContentImage
 {
-    private static Logger log = LoggerFactory.getLogger(BackgroundImage.class);
-    
     private CSSProperty.BackgroundPosition position;
     private CSSProperty.BackgroundRepeat repeat;
     private CSSProperty.BackgroundAttachment attachment;
-    private CSSProperty.BackgroundSize size;
     private TermList positionValues;
-    private TermList sizeValues;
 
     //the coordinates of the image within the element
     private int imgx;
     private int imgy;
-    private int imgw;
-    private int imgh;
     private boolean repeatx;
     private boolean repeaty;
     
     
-    public BackgroundImage(ElementBox owner, URL url, BackgroundPosition position, TermList positionValues, 
-                            BackgroundRepeat repeat, BackgroundAttachment attachment,
-                            BackgroundSize size, TermList sizeValues)
+    public BackgroundImage(ElementBox owner, URL url, BackgroundPosition position, TermList positionValues, BackgroundRepeat repeat, BackgroundAttachment attachment)
     {
         super(owner);
         this.loadImages = owner.getViewport().getConfig().getLoadBackgroundImages();
         this.url = url;
         this.position = position;
         this.positionValues = positionValues;
-        this.size = size;
-        this.sizeValues = sizeValues;
         this.repeat = repeat;
         this.attachment = attachment;
         if (loadImages)
@@ -96,11 +79,6 @@ public class BackgroundImage extends ContentImage
     {
         return attachment;
     }
-    
-    public CSSProperty.BackgroundSize getSize()
-    {
-        return size;
-    }
 
     //===========================================================================
     
@@ -109,7 +87,7 @@ public class BackgroundImage extends ContentImage
     {
         Rectangle bounds = getOwner().getAbsoluteBackgroundBounds();
         computeCoordinates(bounds);
-        drawScaledImage(g, image, bounds.x + imgx, bounds.y + imgy, observer);
+        g.drawImage(image, bounds.x + imgx, bounds.y + imgy, observer);
     }
     
     @Override
@@ -142,7 +120,7 @@ public class BackgroundImage extends ContentImage
             else if (repeaty)
                 drawRepeatY(g, imgx, imgy, bounds.height, clipped);
             else
-                drawScaledImage(g, image, imgx, imgy, observer);
+                g.drawImage(image, imgx, imgy, observer);
             
             g.dispose();
     
@@ -154,8 +132,8 @@ public class BackgroundImage extends ContentImage
     
     private void drawRepeatX(Graphics2D g, int sx, int sy, int limit, Rectangle clip)
     {
-        int width = imgw;
-        int height = imgh;
+        int width = getIntrinsicWidth();
+        int height = getIntrinsicHeight();
         Rectangle r = new Rectangle(0, 0, width, height);
         if (width > 0)
         {
@@ -163,13 +141,13 @@ public class BackgroundImage extends ContentImage
             {
                 r.setLocation(x, sy);
                 if (r.intersects(clip))
-                    drawScaledImage(g, image, x, sy, observer);
+                    g.drawImage(image, x, sy, observer);
             }
             for (int x = sx - width; x + width - 1 >= 0; x -= width)
             {
                 r.setLocation(x, sy);
                 if (r.intersects(clip))
-                    drawScaledImage(g, image, x, sy, observer);
+                    g.drawImage(image, x, sy, observer);
             }
         }
         
@@ -177,8 +155,8 @@ public class BackgroundImage extends ContentImage
     
     private void drawRepeatY(Graphics2D g, int sx, int sy, int limit, Rectangle clip)
     {
-        int width = imgw;
-        int height = imgh;
+        int width = getIntrinsicWidth();
+        int height = getIntrinsicHeight();
         Rectangle r = new Rectangle(0, 0, width, height);
         if (height > 0)
         {
@@ -186,13 +164,13 @@ public class BackgroundImage extends ContentImage
             {
                 r.setLocation(sx, y);
                 if (r.intersects(clip))
-                    drawScaledImage(g, image, sx, y, observer);
+                    g.drawImage(image, sx, y, observer);
             }
             for (int y = sy - height; y + height - 1 >= 0; y -= height)
             {
                 r.setLocation(sx, y);
                 if (r.intersects(clip))
-                    drawScaledImage(g, image, sx, y, observer);
+                    g.drawImage(image, sx, y, observer);
             }
         }
         
@@ -200,8 +178,8 @@ public class BackgroundImage extends ContentImage
     
     private void drawRepeatBoth(Graphics2D g, int sx, int sy, int limitx, int limity, Rectangle clip)
     {
-        int width = imgw;
-        int height = imgh;
+        int width = getIntrinsicWidth();
+        int height = getIntrinsicHeight();
         Rectangle r = new Rectangle(0, 0, width, height);
         if (height > 0)
         {
@@ -220,13 +198,6 @@ public class BackgroundImage extends ContentImage
         }
     }
     
-    private void drawScaledImage(Graphics2D g, Image image, int x, int y, ImageObserver observer)
-    {
-        g.drawImage(image,
-                    x, y, x + imgw, y + imgh,
-                    0, 0, getIntrinsicWidth(), getIntrinsicHeight(),
-                    observer);
-    }
     
     //===========================================================================
     
@@ -262,16 +233,6 @@ public class BackgroundImage extends ContentImage
         return imgy;
     }
     
-    public int getImgWidth()
-    {
-        return imgw;
-    }
-
-    public int getImgHeight()
-    {
-        return imgh;
-    }
-
     /**
      * Computes the image coordinates within the padding box of the element.
      * After this, the coordinates may be obtained using {@link #getImgX()} and {@link #getImgY()}.
@@ -283,19 +244,18 @@ public class BackgroundImage extends ContentImage
     
     protected void computeCoordinates(Rectangle bounds)
     {
-        computeSize(bounds);
         CSSDecoder dec = new CSSDecoder(getOwner().getVisualContext());
         
         //X position
         if (position == BackgroundPosition.LEFT)
             imgx = 0;
         else if (position == BackgroundPosition.RIGHT)
-            imgx = bounds.width - imgw;
+            imgx = bounds.width - getIntrinsicWidth();
         else if (position == BackgroundPosition.CENTER)
-            imgx = (bounds.width - imgw) / 2;
+            imgx = (bounds.width - getIntrinsicWidth()) / 2;
         else if (position == BackgroundPosition.list_values)
         {
-            imgx = dec.getLength((TermLengthOrPercent) positionValues.get(0), false, 0, 0, bounds.width - imgw);
+            imgx = dec.getLength((TermLengthOrPercent) positionValues.get(0), false, 0, 0, bounds.width - getIntrinsicWidth());
         }
         else
             imgx = 0;
@@ -304,13 +264,13 @@ public class BackgroundImage extends ContentImage
         if (position == BackgroundPosition.TOP)
             imgy = 0;
         else if (position == BackgroundPosition.BOTTOM)
-            imgy = bounds.height - imgh;
+            imgy = bounds.height - getIntrinsicHeight();
         else if (position == BackgroundPosition.CENTER)
-            imgy = (bounds.height - imgh) / 2;
+            imgy = (bounds.height - getIntrinsicHeight()) / 2;
         else if (position == BackgroundPosition.list_values)
         {
             int i = positionValues.size() > 1 ? 1 : 0;
-            imgy = dec.getLength((TermLengthOrPercent) positionValues.get(i), false, 0, 0, bounds.height - imgh);
+            imgy = dec.getLength((TermLengthOrPercent) positionValues.get(i), false, 0, 0, bounds.height - getIntrinsicHeight());
         }
         else
             imgy = 0;
@@ -318,83 +278,7 @@ public class BackgroundImage extends ContentImage
         //System.out.println(url + ": x=" + imgx + " y=" + imgy);
     }
 
-    protected void computeSize(Rectangle bounds)
-    {
-        CSSDecoder dec = new CSSDecoder(getOwner().getVisualContext());
-        
-        final float ir = getIntrinsicRatio();
-        
-        if (size == BackgroundSize.COVER)
-        {
-            int w1 = bounds.width;
-            int h1 = Math.round(w1 / ir);
-            int h2 = bounds.height;
-            int w2 = Math.round(h2 * ir);
-            if (h1 - bounds.height > w2 - bounds.width)
-            {
-                imgw = w1; imgh = h1;
-            }
-            else
-            {
-                imgw = w2; imgh = h2;
-            }
-        }
-        else if (size == BackgroundSize.CONTAIN)
-        {
-            int w1 = bounds.width;
-            int h1 = Math.round(w1 / ir);
-            int h2 = bounds.height;
-            int w2 = Math.round(h2 * ir);
-            if (h1 - bounds.height < w2 - bounds.width)
-            {
-                imgw = w1; imgh = h1;
-            }
-            else
-            {
-                imgw = w2; imgh = h2;
-            }
-        }
-        else if (size == BackgroundSize.list_values)
-        {
-            if (sizeValues == null) //no values provided: auto,auto is the default
-            {
-                imgw = getIntrinsicWidth();
-                imgh = getIntrinsicHeight();
-            }
-            else if (sizeValues.size() == 2) //two values should be provided by jStyleParser
-            {
-                Term<?> w = sizeValues.get(0);
-                Term<?> h = sizeValues.get(1);
-                if (w instanceof TermLengthOrPercent && h instanceof TermLengthOrPercent)
-                {
-                    imgw = dec.getLength((TermLengthOrPercent) w, false, 0, 0, bounds.width);                    
-                    imgh = dec.getLength((TermLengthOrPercent) h, false, 0, 0, bounds.height);                    
-                }
-                else if (w instanceof TermLengthOrPercent)
-                {
-                    imgw = dec.getLength((TermLengthOrPercent) w, false, 0, 0, bounds.width);                    
-                    imgh = Math.round(imgw / ir);
-                }
-                else if (h instanceof TermLengthOrPercent)
-                {
-                    imgh = dec.getLength((TermLengthOrPercent) h, false, 0, 0, bounds.height);                    
-                    imgw = Math.round(imgh * ir);
-                }
-                else
-                {
-                    imgw = getIntrinsicWidth();
-                    imgh = getIntrinsicHeight();
-                }
-            }
-            else //this should not happen
-            {
-                log.error("Invalid number BackgroundSize values: {}", sizeValues);
-                imgw = getIntrinsicWidth();
-                imgh = getIntrinsicHeight();
-            }
-        }
-        
-    }
+    
     
     
 }

@@ -67,9 +67,11 @@ import java.awt.image.ColorModel;
 import java.awt.image.IndexColorModel;
 import java.awt.FlowLayout;
 
+import cz.vutbr.web.css.CSSProperty;
 import cz.vutbr.web.css.Declaration;
 import cz.vutbr.web.css.MediaSpec;
 import cz.vutbr.web.css.NodeData;
+import cz.vutbr.web.css.Term;
 
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
@@ -438,8 +440,16 @@ public class BoxBrowser
             int i = 0;
             for (String name : names)
             {
-                String text = name + ": " + style.getAsString(name, true);
+                CSSProperty prop = style.getProperty(name);
+                Term<?> value = style.getValue(name, true);
                 Declaration d = style.getSourceDeclaration(name);
+                
+                String text = name + ": ";
+                if (value != null)
+                    text += value.toString();
+                else
+                    text += prop.toString();
+                
                 String srcd = (d == null) ? "???" : d.toString();
                 String src = (d != null && d.getSource() != null) ? d.getSource().toString() : "<unknown>";
                 items[i++] = new StyleListItem(text, src + " - " + srcd);

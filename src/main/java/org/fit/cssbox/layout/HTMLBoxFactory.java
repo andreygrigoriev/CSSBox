@@ -23,7 +23,6 @@ import java.awt.Graphics2D;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -163,36 +162,34 @@ public class HTMLBoxFactory
         {
             String mime = HTMLNorm.getAttribute(e, "type").toLowerCase();
             String cb = HTMLNorm.getAttribute(e, "codebase");
-            String dataurl = URLDecoder.decode(HTMLNorm.getAttribute(e, "data"), "UTF-8");
+            String dataurl = HTMLNorm.getAttribute(e, "data");
             URL base = new URL(factory.getBaseURL(), cb);
             
             if (!dataurl.trim().isEmpty())
             {
-                final DocumentSource src = factory.createDocumentSource(base, dataurl);
-                if (src != null) //data url successfully decoded
+                DocumentSource src = factory.createDocumentSource(base, dataurl);
+                if (mime.isEmpty())
                 {
-                    if (mime.isEmpty())
-                    {
-                        if (mime == null || mime.isEmpty())
-                            mime = "text/html";
-                    }
-                    log.debug("ctype=" + mime);
-                    
-                    ReplacedContent content = null;
-                    if (mime.startsWith("image/"))
-                    {
-                        content = new ReplacedImage(rbox, rbox.getVisualContext(), base, dataurl);
-                    }
-                    else if (mime.equals("text/html"))
-                    {
-                        log.info("Parsing: " + src.getURL()); 
-                        DOMSource parser = new DefaultDOMSource(src);
-                        Document doc = parser.parse();
-                        String encoding = parser.getCharset();
-                        content = new ReplacedText(rbox, doc, src.getURL(), encoding);
-                    }
-                    rbox.setContentObj(content);
+                    mime = src.getContentType();
+                    if (mime == null || mime.isEmpty())
+                        mime = "text/html";
                 }
+                log.debug("ctype=" + mime);
+                
+                ReplacedContent content = null;
+                if (mime.startsWith("image/"))
+                {
+                    content = new ReplacedImage(rbox, rbox.getVisualContext(), base, dataurl);
+                }
+                else if (mime.equals("text/html"))
+                {
+                    log.info("Parsing: " + src.getURL()); 
+                    DOMSource parser = new DefaultDOMSource(src);
+                    Document doc = parser.parse();
+                    String encoding = parser.getCharset();
+                    content = new ReplacedText(rbox, doc, src.getURL(), encoding);
+                }
+                rbox.setContentObj(content);
             }
         } catch (MalformedURLException e1) {
             //something failed, no content object is created => the we should use the object element contents

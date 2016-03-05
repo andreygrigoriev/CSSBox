@@ -1352,13 +1352,13 @@ public class BlockBox extends ElementBox
             if (absReference != null)
             {
                 //compute the bounds of the reference box relatively to our containing block
-                final Rectangle cb = cblock.getAbsoluteBounds();
+                Rectangle ab = new Rectangle(absReference.getAbsoluteBounds());
+                Rectangle cb = cblock.getAbsoluteBounds();
+                ab.x = ab.x - cb.x;
+                ab.y = ab.y - cb.y;
                 //position relatively to the border edge
                 if (topstatic)
                 {
-                    Rectangle ab = new Rectangle(absReference.getAbsoluteBounds());
-                    ab.x = ab.x - cb.x;
-                    ab.y = ab.y - cb.y;
                     if (!absReference.isblock || ((BlockBox) absReference).getFloating() == FLOAT_NONE) //not-floating boxes: place below
                         coords.top = ab.y + ab.height - 1 - cblock.emargin.top - cblock.border.top;
                     else //floating blocks: place top-aligned
@@ -1366,11 +1366,7 @@ public class BlockBox extends ElementBox
                 }
                 if (leftstatic)
                 {
-                    final BlockBox refcblock = absReference.getContainingBlock();
-                    if (refcblock != null)
-                        coords.left = refcblock.getAbsoluteContentBounds().x - cb.x - cblock.emargin.left - cblock.border.left;
-                    else
-                        coords.left = 0;
+                    coords.left = ab.x - cblock.emargin.left - cblock.border.left;
                 }
                 //the reference box position may be computed later: require recomputing
                 viewport.requireRecomputePositions();
@@ -1632,7 +1628,7 @@ public class BlockBox extends ElementBox
     {
         if (fleft != null && fright != null)
         {
-            int mfy = Math.max(fleft.getMaxYForOwner(this, true), fright.getMaxYForOwner(this, true));
+            int mfy = Math.max(fleft.getMaxYForOwner(this), fright.getMaxYForOwner(this));
             if (this.containsBlocks())
             {
                 for (int i = 0; i < getSubBoxNumber(); i++)
